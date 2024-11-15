@@ -1,15 +1,33 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { AppService } from './app.service';
-import { User } from './interfaces/user.interfaces';
 
+export interface ErrorResponse {
+  statusCode: number;
+  message: string;
+}
 @Controller()
 export class AppController {
+  private logger = new Logger(AppController.name);
   constructor(private readonly appService: AppService) {}
 
+  @MessagePattern({ cmd: 'register' })
+  async register(data: { username: string; email: string; password: string }) {
+    return this.appService.register(data);
+  }
+
   @MessagePattern({ cmd: 'login' })
-  async login(data: User) {
-    return this.appService.login(data);
+  async login(data: { username: string; password: string }) {
+    this.logger.log(data);
+    const result = await this.appService.login({
+      password: data.password,
+      username: data.username,
+    });
+    return result;
+  }
+  @MessagePattern({ cmd: 'validate_token' })
+  async validateToken(token: string) {
+    return this.appService.validateToken(token);
   }
 
   @MessagePattern({ cmd: 'get_users' })
@@ -18,12 +36,8 @@ export class AppController {
   }
 
   @MessagePattern({ cmd: 'get_user' })
-  getUser(id: number) {
+  async getUser(id: string) {
+    console.log(id);
     return this.appService.findOne(id);
-  }
-
-  @MessagePattern({ cmd: 'create_user' })
-  createUser(data: User) {
-    return this.appService.create(data);
   }
 }
